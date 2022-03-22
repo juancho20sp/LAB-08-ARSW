@@ -56,6 +56,7 @@ Para esto, realice lo siguiente:
 	git commit -m "PARTE 1".
 	```
 
+![](img/Part1.png)
 
 ## Parte II.
 
@@ -70,6 +71,8 @@ Para hacer mas útil la aplicación, en lugar de capturar las coordenadas con ca
 	git commit -m "PARTE 2".
 	```
 
+![](img/Part2.png)
+
 ## Parte III.
 
 Ajuste la aplicación anterior para que pueda manejar más de un dibujo a la vez, manteniendo tópicos independientes. Para esto:
@@ -82,7 +85,9 @@ Ajuste la aplicación anterior para que pueda manejar más de un dibujo a la vez
 	```bash
 	git commit -m "PARTE 3".
 	```
+![](img/Part3-1.png)
 
+![](img/Part3-2.png)
 
 ## Parte IV.
 
@@ -133,7 +138,8 @@ Para ver cómo manejar esto desde el manejador de eventos STOMP del servidor, re
 	git commit -m "PARTE FINAL".
 	```	
 
-
+![](img/Part4.png)
+![](img/Part4-2.png)
 
 ### Criterios de evaluación
 

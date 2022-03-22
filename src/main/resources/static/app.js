@@ -9,7 +9,10 @@ var app = (function () {
 
     var stompClient = null;
     var idDrawing = null; 
+    var canvas = document.querySelector('#canvas'); 
+    var ctx = canvas.getContext("2d"); 
     var input = document.querySelector('#idDrawing');
+    
 
 
     var loadListener = function () {
@@ -22,7 +25,7 @@ var app = (function () {
         //     });
         // }
 
-        if(input) input.addEventListener('chage', updateId);
+        if(input) input.addEventListener('change', updateId);
         const eventCanvas = (window.PointerEvent) ? 'pointerdown':'mousedown'; 
         canvas.addEventListener(eventCanvas, eventPoint);
     }
@@ -34,9 +37,12 @@ var app = (function () {
     }
 
     var eventPoint = function(event){
-        const pt = getMousePosition(event); 
-        addPointToCanvas(pt); 
-        if(idDrawing) stompClient.send(`/topic/newpoint.${idDrawing}`, {}, JSON.stringify(pt)); 
+        // const pt = getMousePosition(event); 
+        // addPointToCanvas(pt); 
+        // if(idDrawing) stompClient.send(`/app/newpoint.${idDrawing}`, {}, JSON.stringify(pt)); 
+
+        const {x,y} = getMousePosition(event); 
+        if(idDrawing) app.publishPoint(x,y); 
     }
 
     var addPointToCanvas = function (point) {
@@ -57,24 +63,57 @@ var app = (function () {
         };
     };
 
+    var drawPolygon = function(points){
+        canvas.width = canvas.width;
+        var { x: fstPosX, y: fstPosY } = points[0];
+        ctx.moveTo(fstPosX, fstPosY);
+        
+        points.forEach(point => {
+            const { x , y } = point;
+            ctx.arc(x, y, 3, 0, 2 * Math.PI);
+            ctx.lineTo(x,y);
+        });
+        ctx.lineTo(fstPosX, fstPosY);
+        ctx.stroke();
+    }
+
 
     var connectAndSubscribe = function () {
         console.info('Connecting to WS...');
         var socket = new SockJS('/stompendpoint');
         stompClient = Stomp.over(socket);
 
+
+        canvas.width = canvas.width; 
+
         //subscribe to /topic/TOPICXX when connections succeed
         stompClient.connect({}, function (frame) {
             console.log('Connected: ' + frame);
-            stompClient.subscribe(`/topic/newpoint.${idDrawing}`, function (eventbody) {
-                const obj = JSON.parse(eventbody.body);
-                console.log(obj);
-                addPointToCanvas(obj)
-
+            stompClient.subscribe(`/app/newpoint.${idDrawing}`, function (eventbody) {
+                const pt = JSON.parse(eventbody.body);
+                addPointToCanvas(pt); 
             });
 
+            stompClient.subscribe(`/topic/newpolygon.${idDrawing}`, function (eventbody) {
+                const points = JSON.parse(eventbody.body);
+                drawPolygon(points);
+            });
+    
+            stompClient.subscribe(`/topic/queue.${idDrawing}`, function (eventbody) {
+                const points = JSON.parse(eventbody.body);
+                if( points.length  < 3 ){
+                    points.forEach(point => addPointToCanvas(point));
+                    return;
+                }
+                drawPolygon(points);
+            });
 
+            stompClient.send(`/app/queue.${idDrawing}`, {});
         });
+
+        
+
+       
 
     };
 
@@ -98,7 +137,8 @@ var app = (function () {
             //publicar el evento
             // stompClient.send("/topic/newpoint", {}, JSON.stringify(pt));
 
-            stompClient.send(`/topic/newpoint.${idDrawing}`, {}, JSON.stringify(pt)); 
+            // stompClient.send(`/topic/newpoint.${idDrawing}`, {}, JSON.stringify(pt)); 
+            stompClient.send(`/app/newpoint.${idDrawing}`, {}, JSON.stringify(pt));
         },
 
         disconnect: function () {
@@ -112,8 +152,6 @@ var app = (function () {
         publishDrawing(currentId){
             idDrawing = currentId; 
             connectAndSubscribe();
-            console.log(idDrawing); 
-             
         }
 
     };
