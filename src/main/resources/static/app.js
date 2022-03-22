@@ -8,17 +8,35 @@ var app = (function () {
     }
 
     var stompClient = null;
+    var idDrawing = null; 
+    var input = document.querySelector('#idDrawing');
 
 
     var loadListener = function () {
-        if (window.PointerEvent) {
-            canvas.addEventListener("pointerdown", event => {
-                const pt = getMousePosition(event);
-                addPointToCanvas(pt);
+        // if (window.PointerEvent) {
+        //     canvas.addEventListener("pointerdown", event => {
+        //         const pt = getMousePosition(event);
+        //         addPointToCanvas(pt);
 
-                stompClient.send("/topic/newpoint", {}, JSON.stringify(pt));
-            });
-        }
+        //         stompClient.send("/topic/newpoint", {}, JSON.stringify(pt));
+        //     });
+        // }
+
+        if(input) input.addEventListener('chage', updateId);
+        const eventCanvas = (window.PointerEvent) ? 'pointerdown':'mousedown'; 
+        canvas.addEventListener(eventCanvas, eventPoint);
+    }
+
+
+    var updateId = function(event){
+        idDrawing = event.target.value; 
+        console.log(`newValue ${idDrawing}`); 
+    }
+
+    var eventPoint = function(event){
+        const pt = getMousePosition(event); 
+        addPointToCanvas(pt); 
+        if(idDrawing) stompClient.send(`/topic/newpoint.${idDrawing}`, {}, JSON.stringify(pt)); 
     }
 
     var addPointToCanvas = function (point) {
@@ -48,7 +66,7 @@ var app = (function () {
         //subscribe to /topic/TOPICXX when connections succeed
         stompClient.connect({}, function (frame) {
             console.log('Connected: ' + frame);
-            stompClient.subscribe('/topic/newpoint', function (eventbody) {
+            stompClient.subscribe(`/topic/newpoint.${idDrawing}`, function (eventbody) {
                 const obj = JSON.parse(eventbody.body);
                 console.log(obj);
                 addPointToCanvas(obj)
@@ -65,11 +83,11 @@ var app = (function () {
     return {
 
         init: function () {
-            var can = document.getElementById("canvas");
+            // var can = document.getElementById("canvas");
 
             loadListener(); 
             //websocket connection
-            connectAndSubscribe();
+            // connectAndSubscribe();
         },
 
         publishPoint: function (px, py) {
@@ -78,7 +96,9 @@ var app = (function () {
             addPointToCanvas(pt);
 
             //publicar el evento
-            stompClient.send("/topic/newpoint", {}, JSON.stringify(pt));
+            // stompClient.send("/topic/newpoint", {}, JSON.stringify(pt));
+
+            stompClient.send(`/topic/newpoint.${idDrawing}`, {}, JSON.stringify(pt)); 
         },
 
         disconnect: function () {
@@ -87,7 +107,15 @@ var app = (function () {
             }
             setConnected(false);
             console.log("Disconnected");
+        },
+
+        publishDrawing(currentId){
+            idDrawing = currentId; 
+            connectAndSubscribe();
+            console.log(idDrawing); 
+             
         }
+
     };
 
 })();
